@@ -58,14 +58,11 @@ def getDefinedPairEvent(PAIR_ADDRESS):
         TXNS_BUYS_24H = int(response_result_filterPair['buyCount24'])
         
         if LP < 50:
-            print('Debug 1')
             RUG = True
             LP = 0
         else:
-            print('Debug 2')
             RUG = False
     except:
-        print('Debug 3')
         LP = ""
         MKT_CAP = ""
         VOL_1H = ""
@@ -86,8 +83,6 @@ def getDefinedPairEvent(PAIR_ADDRESS):
         TXNS_BUYS_24H = ""
         RUG = True
 
-
-    print(LP, MKT_CAP, VOL_1H, VOL_4H, VOL_12H, VOL_24H, TXNS_TXNS_1H, TXNS_TXNS_4H, TXNS_TXNS_12H, TXNS_TXNS_24H, TXNS_SELLS_1H, TXNS_SELLS_4H, TXNS_SELLS_12H, TXNS_SELLS_24H, TXNS_BUYS_1H, TXNS_BUYS_4H, TXNS_BUYS_12H, TXNS_BUYS_24H, RUG)
     return LP, MKT_CAP, VOL_1H, VOL_4H, VOL_12H, VOL_24H, TXNS_TXNS_1H, TXNS_TXNS_4H, TXNS_TXNS_12H, TXNS_TXNS_24H, TXNS_SELLS_1H, TXNS_SELLS_4H, TXNS_SELLS_12H, TXNS_SELLS_24H, TXNS_BUYS_1H, TXNS_BUYS_4H, TXNS_BUYS_12H, TXNS_BUYS_24H, RUG
 
 def sqlInsertAllTokenData(time, token_address, pair_address, token_name, token_symbol, token_supply, creator_address, creator_eth_balance, token_url, dexcreener, ID, LP, MKT_CAP, VOL_1H, VOL_4H, VOL_12H, VOL_24H, TXNS_TXNS_1H, TXNS_TXNS_4H, TXNS_TXNS_12H, TXNS_TXNS_24H, TXNS_SELLS_1H, TXNS_SELLS_4H, TXNS_SELLS_12H, TXNS_SELLS_24H, TXNS_BUYS_1H, TXNS_BUYS_4H, TXNS_BUYS_12H, TXNS_BUYS_24H, RUG):
@@ -169,7 +164,7 @@ def sqlConnectorExtractNewPairs(table_name):
     )
     cursor = cnx.cursor(dictionary=True)
 
-    query = f"SELECT * FROM {table_name} ORDER BY launch_date DESC"
+    query = f"SELECT * FROM {table_name} ORDER BY launch_date DESC LIMIT 20"
     cursor.execute(query)
     result = cursor.fetchall()
     cursor.close()
@@ -212,6 +207,7 @@ def sqlUpdatePostTelegramTokenInfo(table_name):
     # Commit the transaction
     cnx.commit()
     print("All rows from table %s were deleted." % (table_name,))
+    print(f"Loop started at: {{datetime.now().strftime('%d/%m/%Y %H:%M:00')}}")
     # Close the cursor and connection
     cursor.close()
     cnx.close()
@@ -233,6 +229,33 @@ def sqlUpdateTrendingTokens(table_name):
     # Commit the transaction
     cnx.commit()
     print("All rows from table %s were deleted." % (table_name,))
+    # Close the cursor and connection
+    cursor.close()
+    cnx.close()
+
+def sqlInsertTax(buy_tax, sell_tax, txns_less_5_mins, hour1, change_hour1, previousValue_hour1, hour4, change_hour4, previousValue_hour4, hour12, change_hour12, previousValue_hour12, day1, change_day1, previousValue_day1, token_address):
+
+    cnx = mysql.connector.connect(
+        host='sql8.freesqldatabase.com',
+        user='sql8593502',
+        password='tuz9qrT3jT',
+        database='sql8593502',
+        port=3306
+    )
+
+    # Create a cursor object
+    cursor = cnx.cursor()
+    # Delete all rows from the table
+    query = """UPDATE post_telegram_token_info
+                SET buy_tax = %s, sell_tax = %s, txn_less_5_mins = %s, hour1 = %s, change_hour1 = %s, previousValue_hour1 = %s, hour4 = %s, change_hour4 = %s, previousValue_hour4 = %s, hour12 = %s, change_hour12 = %s, previousValue_hour12 = %s, day1 = %s, change_day1 = %s, previousValue_day1 = %s
+                WHERE token_address = %s;"""
+
+    data = (buy_tax, sell_tax, txns_less_5_mins, hour1, change_hour1, previousValue_hour1, hour4, change_hour4, previousValue_hour4, hour12, change_hour12, previousValue_hour12, day1, change_day1, previousValue_day1, token_address)
+
+    cursor.execute(query, data)
+    # Commit the transaction
+    cnx.commit()
+    print(f"{buy_tax} inserted in {token_address}")
     # Close the cursor and connection
     cursor.close()
     cnx.close()
@@ -323,7 +346,7 @@ def getDefinedTokenEvents(token_pair):
                 cursor
             }
         }""" % (token_pair,)
-    print(headers_define)
+    
     response_tokenEvent = requests.post(url, headers=headers_define, json={'query':getTokenEvents }) 
     json_response_tokenEvent = json.loads(response_tokenEvent.text)['data']['getTokenEvents']['items']
 
@@ -512,8 +535,7 @@ async def main():
         list_volume_hour4 = []
         list_volume_hour12 = []
         for token in data:
-            print(token['rug'])
-            print(datetime.strptime(token['time'], "%d/%m/%Y %H:%M:%S").strftime("%d/%m/%Y"), datetime.now().strftime("%d/%m/%Y"))
+            
             if token['rug'] == 0:
                 if datetime.now().strftime("%d/%m/%Y") == datetime.strptime(token['time'], "%d/%m/%Y %H:%M:%S").strftime("%d/%m/%Y"):
                     if token['txns'] != '':                
@@ -580,8 +602,22 @@ async def main():
                         else:
                             buy_tax = 'Tax -'
                             sell_tax = 'Tax -'
+
+                        
                         
                         json_response_DetailedPairStats = getDefinedDetailedPairStats(token['pair_address'])
+                        sqlInsertTax(buy_tax, sell_tax, txns_less_5_mins, json_response_DetailedPairStats['hour1'],
+                                                json_response_DetailedPairStats['change_hour1'],
+                                                json_response_DetailedPairStats['previousValue_hour1'],
+                                                json_response_DetailedPairStats['hour4'],
+                                                json_response_DetailedPairStats['change_hour4'],
+                                                json_response_DetailedPairStats['previousValue_hour4'],
+                                                json_response_DetailedPairStats['hour12'],
+                                                json_response_DetailedPairStats['change_hour12'],
+                                                json_response_DetailedPairStats['previousValue_hour12'],
+                                                json_response_DetailedPairStats['day1'],
+                                                json_response_DetailedPairStats['change_day1'],
+                                                json_response_DetailedPairStats['previousValue_day1'], token['token_address'])
                         if "99.0%" not in honeypot_text:
                             if json_response_DetailedPairStats['day1'] != 0:
                                 
@@ -633,13 +669,14 @@ async def main():
                                 pass
 
                         else:
-                            list_test.append(f"🟥**[{token['token_name']}]**({dextools_url}{token['pair_address']})" + "|" + f"**[{token['token_symbol']}]**({token['dexcreener']})"
-                                + '\n' + 
-                                f"**🔖Buy {buy_tax} & Sell {sell_tax}**" 
-                                + '\n' + 
-                                f"💰**LP**: {token['lp']}" + '|' + f"**VOL**: {json_response_DetailedPairStats['day1']}" + '|' + f"**TXNS**: {token['txns']}"
-                                + '\n' + 
-                                f"**🔥TXNS <5mins: {txns_less_5_mins}**" + '\n' + '\n')
+                            # list_test.append(f"🟥**[{token['token_name']}]**({dextools_url}{token['pair_address']})" + "|" + f"**[{token['token_symbol']}]**({token['dexcreener']})"
+                            #     + '\n' + 
+                            #     f"**🔖Buy {buy_tax} & Sell {sell_tax}**" 
+                            #     + '\n' + 
+                            #     f"💰**LP**: {token['lp']}" + '|' + f"**VOL**: {json_response_DetailedPairStats['day1']}" + '|' + f"**TXNS**: {token['txns']}"
+                            #     + '\n' + 
+                            #     f"**🔥TXNS <5mins: {txns_less_5_mins}**" + '\n' + '\n')
+                            pass
                     else:
                         pass
                 else:
@@ -667,7 +704,9 @@ async def main():
                 )
         except:
             pass
+        
 
+        print(f"Finish loop at: {datetime.now().strftime('%d/%m/%Y %H:%M:00')}")
         time.sleep(2000)   
         sqlUpdatePostTelegramTokenInfo("post_telegram_token_info")  
         
