@@ -164,7 +164,7 @@ def sqlConnectorExtractNewPairs(table_name):
     )
     cursor = cnx.cursor(dictionary=True)
 
-    query = f"SELECT * FROM {table_name} ORDER BY launch_date DESC LIMIT 20"
+    query = f"SELECT * FROM {table_name} ORDER BY launch_date DESC"
     cursor.execute(query)
     result = cursor.fetchall()
     cursor.close()
@@ -207,7 +207,7 @@ def sqlUpdatePostTelegramTokenInfo(table_name):
     # Commit the transaction
     cnx.commit()
     print("All rows from table %s were deleted." % (table_name,))
-    print(f"Loop started at: {{datetime.now().strftime('%d/%m/%Y %H:%M:00')}}")
+    print(f"Loop started at: {datetime.now().strftime('%d/%m/%Y %H:%M:00')}")
     # Close the cursor and connection
     cursor.close()
     cnx.close()
