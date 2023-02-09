@@ -574,37 +574,38 @@ async def main():
                         result = await client(functions.messages.GetMessagesRequest(id=[honeypot_interact.id + 1]))
                         
                         honeypot_text = result.messages[0].message
+                        try:
+                            if "Buy Tax" in honeypot_text:
+                                try:
+                                    buy_tax = honeypot_text[honeypot_text.find('\nBuy Tax:')+len('\nSell'):honeypot_text.rfind('\nSell')]
+                                    sell_tax = honeypot_text[honeypot_text.find('\nSell Tax:')+len('\n\nView'):honeypot_text.rfind('\n\nView')]
+                                except:
+                                    buy_tax = "Tax -"
+                                    sell_tax = "Tax -"
 
-                        if "Buy Tax" in honeypot_text:
-                            try:
-                                buy_tax = honeypot_text[honeypot_text.find('\nBuy Tax:')+len('\nSell'):honeypot_text.rfind('\nSell')]
-                                sell_tax = honeypot_text[honeypot_text.find('\nSell Tax:')+len('\n\nView'):honeypot_text.rfind('\n\nView')]
-                            except:
-                                buy_tax = "Tax -"
-                                sell_tax = "Tax -"
+                            elif "TRANSFER_FAILED" in honeypot_text:
+                                buy_tax = "HP❌"
+                                sell_tax = "HP❌"
 
-                        elif "TRANSFER_FAILED" in honeypot_text:
-                            buy_tax = "HP❌"
-                            sell_tax = "HP❌"
+                            elif "INSUFFICIENT_OUTPUT_AMOUNT" in honeypot_text:
+                                buy_tax = "HP❌"
+                                sell_tax = "HP❌"
 
-                        elif "INSUFFICIENT_OUTPUT_AMOUNT" in honeypot_text:
-                            buy_tax = "HP❌"
-                            sell_tax = "HP❌"
+                            elif "Run the fuck away" in honeypot_text:
+                                buy_tax = "HP❌"
+                                sell_tax = "HP❌"
 
-                        elif "Run the fuck away" in honeypot_text:
-                            buy_tax = "HP❌"
-                            sell_tax = "HP❌"
+                            elif "N/A" in honeypot_text:
+                                buy_tax = 'Tax -'
+                                sell_tax = 'Tax -'
 
-                        elif "N/A" in honeypot_text:
+                            else:
+                                buy_tax = 'Tax -'
+                                sell_tax = 'Tax -'
+                        except:
                             buy_tax = 'Tax -'
                             sell_tax = 'Tax -'
 
-                        else:
-                            buy_tax = 'Tax -'
-                            sell_tax = 'Tax -'
-
-                        
-                        
                         json_response_DetailedPairStats = getDefinedDetailedPairStats(token['pair_address'])
                         sqlInsertTax(buy_tax, sell_tax, txns_less_5_mins, json_response_DetailedPairStats['hour1'],
                                                 json_response_DetailedPairStats['change_hour1'],
