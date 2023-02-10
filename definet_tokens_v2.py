@@ -97,7 +97,7 @@ def sqlInsertAllTokenData(time, token_address, pair_address, token_name, token_s
     # Create a cursor object
     cursor = cnx.cursor()
     # Insert data into the "table_name" table
-    query = "INSERT INTO all_data_tokens (time, token_address, pair_address, token_name, token_symbol, token_supply, creator_address, creator_eth_balance, token_url, dexcreener, ID, LP, MKT_CAP, VOL_1H, VOL_4H, VOL_12H, VOL_24H, TXNS_TXNS_1H, TXNS_TXNS_4H, TXNS_TXNS_12H, TXNS_TXNS_24H, TXNS_SELLS_1H, TXNS_SELLS_4H, TXNS_SELLS_12H, TXNS_SELLS_24H, TXNS_BUYS_1H, TXNS_BUYS_4H, TXNS_BUYS_12H, TXNS_BUYS_24H, RUG) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE ID = %s"
+    query = "INSERT INTO all_data_tokens (time, token_address, pair_address, token_name, token_symbol, token_supply, creator_address, creator_eth_balance, token_url, dexcreener, ID, LP, MKT_CAP, hour1, hour4, hour12, day1, TXNS_TXNS_1H, TXNS_TXNS_4H, TXNS_TXNS_12H, TXNS_TXNS_24H, TXNS_SELLS_1H, TXNS_SELLS_4H, TXNS_SELLS_12H, TXNS_SELLS_24H, TXNS_BUYS_1H, TXNS_BUYS_4H, TXNS_BUYS_12H, TXNS_BUYS_24H, RUG) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE ID = %s"
     
     data = (time, token_address, pair_address, token_name, token_symbol, token_supply, creator_address, creator_eth_balance, token_url, dexcreener, ID, LP, MKT_CAP, VOL_1H, VOL_4H, VOL_12H, VOL_24H, TXNS_TXNS_1H, TXNS_TXNS_4H, TXNS_TXNS_12H, TXNS_TXNS_24H, TXNS_SELLS_1H, TXNS_SELLS_4H, TXNS_SELLS_12H, TXNS_SELLS_24H, TXNS_BUYS_1H, TXNS_BUYS_4H, TXNS_BUYS_12H, TXNS_BUYS_24H, RUG, ID)
     cursor.execute(query, data)
