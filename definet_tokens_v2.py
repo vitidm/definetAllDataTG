@@ -712,7 +712,7 @@ async def main():
         sqlUpdatePostTelegramTokenInfo("post_telegram_token_info")  
         
         sqlUpdateTrendingTokens("trending_tokens")
-            
+        print(f"Starting loop: {datetime.now().strftime('%d/%m/%Y %H:%M:00')}")
 def main_client():
     with client:
         client.loop.run_until_complete(main())
