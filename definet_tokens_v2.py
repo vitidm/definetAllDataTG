@@ -708,7 +708,7 @@ async def main():
         
 
         print(f"Finish loop at: {datetime.now().strftime('%d/%m/%Y %H:%M:00')}")
-        time.sleep(2000)   
+        time.sleep(1000)   
         sqlUpdatePostTelegramTokenInfo("post_telegram_token_info")  
         
         sqlUpdateTrendingTokens("trending_tokens")
