@@ -551,16 +551,18 @@ async def main():
                                 
                             elif json_transaction['eventDisplayType'] == 'Buy' or json_transaction['eventDisplayType'] == 'Sell':
                                 all_transactions.append(json_transaction['timestamp'])
-                                
-                        open_trading_time = all_transactions[-1]
-                        transactions = []
+                        try:     
+                            open_trading_time = all_transactions[-1]
+                            transactions = []
 
-                        for transaction in all_transactions:
-                            restant_time = abs(transaction - open_trading_time)
-                            if restant_time < timedelta(minutes=5):
-                                transactions.append(restant_time)
-                        
-                        txns_less_5_mins = len(transactions)
+                            for transaction in all_transactions:
+                                restant_time = abs(transaction - open_trading_time)
+                                if restant_time < timedelta(minutes=5):
+                                    transactions.append(restant_time)
+                            
+                            txns_less_5_mins = len(transactions)
+                        except:
+                            txns_less_5_mins = None
 
                         honeypot_interact =await client.send_message(
                             5072283948,
