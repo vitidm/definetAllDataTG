@@ -157,7 +157,7 @@ def sqlConnectorInsertPostTelegramTokenInfo(time, token_address, pair_address, t
     cursor.close()
     cnx.close()
 
-def sqlConnectorExtractNewPairs(table_name):
+def sqlConnectorExtractAllDataTokens(filtered_date):
     cnx = mysql.connector.connect(
         host='sql8.freesqldatabase.com',
         user='sql8593502',
@@ -167,7 +167,25 @@ def sqlConnectorExtractNewPairs(table_name):
     )
     cursor = cnx.cursor(dictionary=True)
 
-    query = f"SELECT * FROM {table_name} ORDER BY launch_date DESC"
+    query = f"""SELECT token_address FROM all_data_tokens WHERE time like '%{filtered_date}%' and LP = 0"""
+    cursor.execute(query)
+    result = cursor.fetchall()
+    cursor.close()
+    cnx.close()
+    
+    return result
+
+def sqlConnectorExtractNewPairs(table_name, filtered_date):
+    cnx = mysql.connector.connect(
+        host='sql8.freesqldatabase.com',
+        user='sql8593502',
+        password='tuz9qrT3jT',
+        database='sql8593502',
+        port=3306
+    )
+    cursor = cnx.cursor(dictionary=True)
+
+    query = f"SELECT * FROM {table_name} where launch_date like '%{filtered_date}%' ORDER BY launch_date DESC"
     cursor.execute(query)
     result = cursor.fetchall()
     cursor.close()
@@ -264,7 +282,7 @@ def sqlInsertTax(buy_tax, sell_tax, txns_less_5_mins, hour1, change_hour1, previ
     cnx.close()
 
 def readJson():
-    data = sqlConnectorExtractNewPairs("pair_created_real_time")
+    data = sqlConnectorExtractNewPairs("pair_created_real_time", datetime.now().strftime("%d/%m/%Y"))
 
     for token in data:
         LP, MKT_CAP, VOL_1H, VOL_4H, VOL_12H, VOL_24H, TXNS_TXNS_1H, TXNS_TXNS_4H, TXNS_TXNS_12H, TXNS_TXNS_24H, TXNS_SELLS_1H, TXNS_SELLS_4H, TXNS_SELLS_12H, TXNS_SELLS_24H, TXNS_BUYS_1H, TXNS_BUYS_4H, TXNS_BUYS_12H, TXNS_BUYS_24H, RUG = getDefinedPairEvent(token['pair_address'])
@@ -528,6 +546,7 @@ def send_tg_message(update, context):
         list_volume_hour1 = []
         list_volume_hour4 = []
         list_volume_hour12 = []
+        counter_honeypotrequests = 0
         for token in data:
             
             if token['rug'] == 0:
@@ -558,46 +577,56 @@ def send_tg_message(update, context):
                         except:
                             txns_less_5_mins = None
 
+                        data_from_allTokens = sqlConnectorExtractAllDataTokens(datetime.now().strftime("%d/%m/%Y"))
                         
-                        try: 
-                            querystring = {"factory_address": uniswapV2["factory_address"], "token_b":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","chain":"eth","exchange":"Uniswap v3","token_a":token['token_address'],"router_address": uniswapV2["router_address"]}
+                        if any(token['token_address'] == item['token_address'] for item in data_from_allTokens):
+                            print(f"{token['token_address']} entered")
+                            try: 
+                                querystring = {"factory_address": uniswapV2["factory_address"], "token_b":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","chain":"eth","exchange":"Uniswap v3","token_a":token['token_address'],"router_address": uniswapV2["router_address"]}
 
-                            response = make_request_honeypot(querystring)
-                            buy_tax = str(response.json()['buy_tax'])
-                            sell_tax = str(response.json()['sell_tax'])
-                            error = response.json()['error']
-                            isHoneypot = False
-                        except:
-                            if response.status_code == 200:
-                                querystring = {"factory_address": uniswapV3["factory_address"], "token_b":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","chain":"eth","exchange":"Uniswap v3","token_a":token['token_address'],"router_address": uniswapV3["router_address"]}
                                 response = make_request_honeypot(querystring)
                                 buy_tax = str(response.json()['buy_tax'])
                                 sell_tax = str(response.json()['sell_tax'])
                                 error = response.json()['error']
                                 isHoneypot = False
-                            else:
+                            except:
+                                if response.status_code == 200:
+                                    querystring = {"factory_address": uniswapV3["factory_address"], "token_b":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","chain":"eth","exchange":"Uniswap v3","token_a":token['token_address'],"router_address": uniswapV3["router_address"]}
+                                    response = make_request_honeypot(querystring)
+                                    buy_tax = str(response.json()['buy_tax'])
+                                    sell_tax = str(response.json()['sell_tax'])
+                                    error = response.json()['error']
+                                    isHoneypot = False
+                                else:
+                                    buy_tax = 'Tax -'
+                                    sell_tax = 'Tax -'
+                                    error = ''
+                                    isHoneypot = True
+
+                            try:
+                                if "TRANSFER_FAILED" in error:
+                                    buy_tax = "HP❌"
+                                    sell_tax = "HP❌"
+                                    isHoneypot = True
+                                elif "INSUFFICIENT_LIQUIDITY" in error:
+                                    buy_tax = "Tax -"
+                                    sell_tax = "Tax -"
+
+                                elif "SEVERE_FEE" in error:
+                                    buy_tax = "HP❌"
+                                    sell_tax = "HP❌"
+                                    isHoneypot = True
+                            except:
                                 buy_tax = 'Tax -'
                                 sell_tax = 'Tax -'
-                                error = ''
-                                isHoneypot = True
-
-                        try:
-                            if "TRANSFER_FAILED" in error:
-                                buy_tax = "HP❌"
-                                sell_tax = "HP❌"
-                                isHoneypot = True
-                            elif "INSUFFICIENT_LIQUIDITY" in error:
-                                buy_tax = "Tax -"
-                                sell_tax = "Tax -"
-
-                            elif "SEVERE_FEE" in error:
-                                buy_tax = "HP❌"
-                                sell_tax = "HP❌"
-                                isHoneypot = True
-                        except:
-                            buy_tax = 'Tax -'
-                            sell_tax = 'Tax -'
-
+                            
+                            counter_honeypotrequests += 1
+                        else:
+                            print(f"{token['token_address']} NONONONONONOOT entered")
+                            buy_tax = "Inserted"
+                            sell_tax = "Inserted"
+                            isHoneypot = True
+                            
                         json_response_DetailedPairStats = getDefinedDetailedPairStats(token['pair_address'])
                         sqlInsertTax(buy_tax, sell_tax, txns_less_5_mins, json_response_DetailedPairStats['hour1'],
                                                 json_response_DetailedPairStats['change_hour1'],
@@ -681,7 +710,7 @@ def send_tg_message(update, context):
         total_volume_hour4 = str("\n   ▪️**4h** Volume : " + "$" + str(sum(list_volume_hour4)))
         total_volume_hour12 = str("\n   ▪️**12h**: " + "$" + str(sum(list_volume_hour12)))
         total_volume_day1 = str("\n   ▪️**24h** Volume: " + "$" + str(sum(list_volume_day1)))
-
+        print(f"Honeypot requests {counter_honeypotrequests}")
         print(f"{total_volume_hour1} \n {total_volume_hour4} \n {total_volume_hour12} \n {total_volume_day1}")
         list_test.append(total_volume_hour1)
         list_test.append(total_volume_hour4)
@@ -696,7 +725,7 @@ def send_tg_message(update, context):
             pass
 
         print(f"Finish loop at: {datetime.now().strftime('%d/%m/%Y %H:%M:00')}")
-        time.sleep(10)   
+        time.sleep(1500)   
         sqlUpdatePostTelegramTokenInfo("post_telegram_token_info")  
         
         sqlUpdateTrendingTokens("trending_tokens")
