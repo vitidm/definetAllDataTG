@@ -10,11 +10,14 @@ from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
 from telethon.sync import TelegramClient
 from telethon import functions
+from telegram.ext import Updater, CommandHandler
 
 url = "https://api.defined.fi"
 definet_lv = "ev1g4sXv2b4HR6XC9x4bw4IKP5zUj6av3QhrOWJz"
 definet_vd = "yNk1v01YDP3Glmq5xGEiY8BBIhEt1y261KTwSwHv"
 definet_apis = [definet_lv, definet_vd]
+
+updater = Updater(token='5649973136:AAH2izrLwVsIvyL5fyPrSIUM9lPzNHwm06M', use_context=True)
 
 def getDefinedPairEvent(PAIR_ADDRESS):
     headers_define = {
@@ -485,41 +488,32 @@ def getDefinedDetailedPairStats(token_pair):
 
     return volume_values
 
-config = configparser.ConfigParser()
-config.read("config.ini")
+def make_request_honeypot(querystring):
+    url = "https://honeypotapi.p.rapidapi.com/api/v1/scan/"
 
+    headers = {
+        "X-RapidAPI-Key": "1851244663msh3f44cb93899cadep17b4cdjsne05a1f5c7894",
+        "X-RapidAPI-Host": "honeypotapi.p.rapidapi.com"
+    }
 
-api_id = config['Telegram']['api_id']
-api_hash = config['Telegram']['api_hash']
+    response = requests.request("GET", url, headers=headers, params=querystring)
 
-phone = config['Telegram']['phone']
-username = config['Telegram']['username']
+    return response
 
-try:
-    client = TelegramClient('testBot2', api_id, api_hash)
-    print("Connected succesfully")
-    
-except Exception as ap:
-    print(f"ERROR - {ap}")
-    exit(1)
+uniswapV2 = {
+    "name":"Uniswap v2",
+    "factory_address":"0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
+    "router_address":"0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+}
 
-async def main():
-    await client.start()
-
-    if not await client.is_user_authorized():
-        await client.send_code_request(phone)
-
-        try:
-            await client.sign_in(phone, input('Enter the code: '))
-
-        except SessionPasswordNeededError:
-            await client.sign_in(password=input('Password: '))
-
-    message_generating_list_captchabot = await client.send_message(
-            -1001833374917,
-            "Generating List...")
-
-    message_generating_list_captchabot
+uniswapV3 = {
+    "name":"Uniswap v3",
+    "factory_address":"0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    "router_address":"0xE592427A0AEce92De3Edee1F18E0157C05861564"
+}
+def send_tg_message(update, context):
+    original_message = context.bot.send_message(chat_id=update.message.chat_id, text="Generating List...", parse_mode = "Markdown", disable_web_page_preview=True)
+    original_message_id = original_message.message_id
 
     sqlUpdatePostTelegramTokenInfo("post_telegram_token_info")
     
@@ -564,46 +558,42 @@ async def main():
                         except:
                             txns_less_5_mins = None
 
-                        honeypot_interact =await client.send_message(
-                            5072283948,
-                            
-                            f"/honeypot {token['token_address']}" 
-                            ,
-                            parse_mode = "Markdown"
-                        ) 
-
-                        time.sleep(3.5)
-                        result = await client(functions.messages.GetMessagesRequest(id=[honeypot_interact.id + 1]))
                         
-                        honeypot_text = result.messages[0].message
-                        try:
-                            if "Buy Tax" in honeypot_text:
-                                try:
-                                    buy_tax = honeypot_text[honeypot_text.find('\nBuy Tax:')+len('\nSell'):honeypot_text.rfind('\nSell')]
-                                    sell_tax = honeypot_text[honeypot_text.find('\nSell Tax:')+len('\n\nView'):honeypot_text.rfind('\n\nView')]
-                                except:
-                                    buy_tax = "Tax -"
-                                    sell_tax = "Tax -"
+                        try: 
+                            querystring = {"factory_address": uniswapV2["factory_address"], "token_b":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","chain":"eth","exchange":"Uniswap v3","token_a":token['token_address'],"router_address": uniswapV2["router_address"]}
 
-                            elif "TRANSFER_FAILED" in honeypot_text:
-                                buy_tax = "HP❌"
-                                sell_tax = "HP❌"
-
-                            elif "INSUFFICIENT_OUTPUT_AMOUNT" in honeypot_text:
-                                buy_tax = "HP❌"
-                                sell_tax = "HP❌"
-
-                            elif "Run the fuck away" in honeypot_text:
-                                buy_tax = "HP❌"
-                                sell_tax = "HP❌"
-
-                            elif "N/A" in honeypot_text:
-                                buy_tax = 'Tax -'
-                                sell_tax = 'Tax -'
-
+                            response = make_request_honeypot(querystring)
+                            buy_tax = str(response.json()['buy_tax'])
+                            sell_tax = str(response.json()['sell_tax'])
+                            error = response.json()['error']
+                            isHoneypot = False
+                        except:
+                            if response.status_code == 200:
+                                querystring = {"factory_address": uniswapV3["factory_address"], "token_b":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","chain":"eth","exchange":"Uniswap v3","token_a":token['token_address'],"router_address": uniswapV3["router_address"]}
+                                response = make_request_honeypot(querystring)
+                                buy_tax = str(response.json()['buy_tax'])
+                                sell_tax = str(response.json()['sell_tax'])
+                                error = response.json()['error']
+                                isHoneypot = False
                             else:
                                 buy_tax = 'Tax -'
                                 sell_tax = 'Tax -'
+                                error = ''
+                                isHoneypot = True
+
+                        try:
+                            if "TRANSFER_FAILED" in error:
+                                buy_tax = "HP❌"
+                                sell_tax = "HP❌"
+                                isHoneypot = True
+                            elif "INSUFFICIENT_LIQUIDITY" in error:
+                                buy_tax = "Tax -"
+                                sell_tax = "Tax -"
+
+                            elif "SEVERE_FEE" in error:
+                                buy_tax = "HP❌"
+                                sell_tax = "HP❌"
+                                isHoneypot = True
                         except:
                             buy_tax = 'Tax -'
                             sell_tax = 'Tax -'
@@ -621,7 +611,7 @@ async def main():
                                                 json_response_DetailedPairStats['day1'],
                                                 json_response_DetailedPairStats['change_day1'],
                                                 json_response_DetailedPairStats['previousValue_day1'], token['token_address'])
-                        if "99.0%" not in honeypot_text:
+                        if not isHoneypot:
                             if json_response_DetailedPairStats['day1'] != 0:
                                 
                                 # list_test.append(f"{token['rug']}**[{token['token_name']}]**({dextools_url}{token['pair_address']})" + "|" + f"**[{token['token_symbol']}]**({token['dexcreener']})"
@@ -699,25 +689,19 @@ async def main():
         list_test.append(total_volume_day1)
         
         try:
-            await client.edit_message(
-                    -1001833374917,
-                    message_generating_list_captchabot.id,
-                    " ".join(list_test),
-                    parse_mode = "Markdown"
-                )
+            # Edit message each X seconds
+            original_message = context.bot.edit_message_text(chat_id=update.message.chat_id, message_id=original_message_id, text=" ".join(list_test), parse_mode = "Markdown", disable_web_page_preview=True )
+            original_message_id = original_message.message_id
         except:
             pass
-        
 
         print(f"Finish loop at: {datetime.now().strftime('%d/%m/%Y %H:%M:00')}")
-        time.sleep(2500)   
+        time.sleep(10)   
         sqlUpdatePostTelegramTokenInfo("post_telegram_token_info")  
         
         sqlUpdateTrendingTokens("trending_tokens")
         print(f"Starting loop: {datetime.now().strftime('%d/%m/%Y %H:%M:00')}")
-def main_client():
-    with client:
-        client.loop.run_until_complete(main())
-    
+
 if __name__ == '__main__':
-    main_client()
+    updater.dispatcher.add_handler(CommandHandler('new_pairs', send_tg_message))
+    updater.start_polling()
