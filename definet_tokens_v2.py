@@ -609,22 +609,22 @@ def send_tg_message(update, context):
                                     sell_tax = "HP❌"
                                     isHoneypot = True
                                 elif "INSUFFICIENT_LIQUIDITY" in error:
-                                    buy_tax = "Tax -"
-                                    sell_tax = "Tax -"
+                                    buy_tax = "-"
+                                    sell_tax = "-"
 
                                 elif "SEVERE_FEE" in error:
                                     buy_tax = "HP❌"
                                     sell_tax = "HP❌"
                                     isHoneypot = True
                             except:
-                                buy_tax = 'Tax -'
-                                sell_tax = 'Tax -'
+                                buy_tax = '-'
+                                sell_tax = '-'
                             
                             counter_honeypotrequests += 1
                         else:
                             print(f"{token['token_address']} NONONONONONOOT entered")
-                            buy_tax = "Inserted"
-                            sell_tax = "Inserted"
+                            buy_tax = "-"
+                            sell_tax = "-"
                             isHoneypot = True
                             
                         json_response_DetailedPairStats = getDefinedDetailedPairStats(token['pair_address'])
