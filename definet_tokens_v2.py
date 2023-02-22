@@ -709,7 +709,7 @@ def send_tg_message(update, context):
         total_volume_hour1 = str("\n   ▪️**1h** Volume: " + "$" + str(sum(list_volume_hour1)))
         total_volume_hour4 = str("\n   ▪️**4h** Volume : " + "$" + str(sum(list_volume_hour4)))
         total_volume_hour12 = str("\n   ▪️**12h**: " + "$" + str(sum(list_volume_hour12)))
-        total_volume_day1 = str("\n   ▪️**24h** Volume: " + "$" + str(sum(list_volume_day1)))
+        total_volume_day1 = str("\n   ▪️**24h** Volume: " + "$" + str(sum(list_volume_day1)) + f"Finish loop at: {datetime.now().strftime('%d/%m/%Y %H:%M:00')}")
         print(f"Honeypot requests {counter_honeypotrequests}")
         print(f"{total_volume_hour1} \n {total_volume_hour4} \n {total_volume_hour12} \n {total_volume_day1}")
         list_test.append(total_volume_hour1)
