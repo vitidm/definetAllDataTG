@@ -15,7 +15,8 @@ from telegram.ext import Updater, CommandHandler
 url = "https://api.defined.fi"
 definet_lv = "ev1g4sXv2b4HR6XC9x4bw4IKP5zUj6av3QhrOWJz"
 definet_vd = "yNk1v01YDP3Glmq5xGEiY8BBIhEt1y261KTwSwHv"
-definet_apis = [definet_lv, definet_vd]
+definet_lv2 = "QJrmsIM4ig7qFeQh2sd9Da9DZIGqD2KE6E8lD1Hd"
+definet_apis = [definet_lv2, definet_lv, definet_vd]
 
 updater = Updater(token='5649973136:AAH2izrLwVsIvyL5fyPrSIUM9lPzNHwm06M', use_context=True)
 
@@ -28,7 +29,7 @@ def getDefinedPairEvent(PAIR_ADDRESS):
     getTokenEvents = """query FilterPairsQuery($token_pair: String) 
         { filterPairs(phrase: $token_pair rankings: { attribute: liquidity, direction: DESC } ) 
             {count offset results 
-                { buyCount5m buyCount1 buyCount4 buyCount12 buyCount24 sellCount5m sellCount1 sellCount4 sellCount12 sellCount24 txnCount5m txnCount1 txnCount4 txnCount12 txnCount24 highPrice5m highPrice1 highPrice4 highPrice12 highPrice24 lowPrice5m lowPrice1 lowPrice4 lowPrice12 lowPrice24 priceChange5m priceChange1 priceChange4 priceChange12 priceChange24 volumeUSD5m volumeUSD1 volumeUSD4 volumeUSD12 volumeUSD24 price marketCap liquidity liquidityToken exchange 
+                { buyCount1 buyCount4 buyCount12 buyCount24 sellCount1 sellCount4 sellCount12 sellCount24 txnCount1 txnCount4 txnCount12 txnCount24 highPrice1 highPrice4 highPrice12 highPrice24 lowPrice1 lowPrice4 lowPrice12 lowPrice24 priceChange1 priceChange4 priceChange12 priceChange24 volumeUSD1 volumeUSD4 volumeUSD12 volumeUSD24 price marketCap liquidity liquidityToken exchange 
                     { address iconUrl id name networkId tradeUrl } 
                         pair { address exchangeHash fee id networkId tickSpacing token0 token1 } 
                             token0 { address cmcId decimals id name networkId symbol totalSupply } 
@@ -37,7 +38,6 @@ def getDefinedPairEvent(PAIR_ADDRESS):
     variables = {"token_pair": str(PAIR_ADDRESS).lower()} 
 
     response_tokenEvent = requests.post(url, headers=headers_define, json={"query": getTokenEvents, "variables": variables }) 
-
     try:
         response_result_filterPair =  json.loads(response_tokenEvent.text)['data']['filterPairs']['results'][0]
 
@@ -85,7 +85,7 @@ def getDefinedPairEvent(PAIR_ADDRESS):
         TXNS_BUYS_12H = ""
         TXNS_BUYS_24H = ""
         RUG = True
-
+        
     return LP, MKT_CAP, VOL_1H, VOL_4H, VOL_12H, VOL_24H, TXNS_TXNS_1H, TXNS_TXNS_4H, TXNS_TXNS_12H, TXNS_TXNS_24H, TXNS_SELLS_1H, TXNS_SELLS_4H, TXNS_SELLS_12H, TXNS_SELLS_24H, TXNS_BUYS_1H, TXNS_BUYS_4H, TXNS_BUYS_12H, TXNS_BUYS_24H, RUG
 
 def sqlInsertAllTokenData(time, token_address, pair_address, token_name, token_symbol, token_supply, creator_address, creator_eth_balance, token_url, dexcreener, ID, LP, MKT_CAP, VOL_1H, VOL_4H, VOL_12H, VOL_24H, TXNS_TXNS_1H, TXNS_TXNS_4H, TXNS_TXNS_12H, TXNS_TXNS_24H, TXNS_SELLS_1H, TXNS_SELLS_4H, TXNS_SELLS_12H, TXNS_SELLS_24H, TXNS_BUYS_1H, TXNS_BUYS_4H, TXNS_BUYS_12H, TXNS_BUYS_24H, RUG):
@@ -340,7 +340,7 @@ def readJson():
 def getDefinedTokenEvents(token_pair):
     headers_define = {
         "accept": "application/json",
-        "x-api-key": f"{random.choice(definet_apis)}"
+        "x-api-key": f"{definet_lv2}"
     }
     getTokenEvents = """{getTokenEvents(query: {address: "%s", networkId: 1}, limit:500) 
             {
@@ -392,7 +392,7 @@ def getDefinedDetailedPairStats(token_pair):
     for volume_type in ['hour1', 'hour4', 'hour12', 'day1']:
         headers_define = {
             "accept": "application/json",
-            "x-api-key": f"{random.choice(definet_apis)}"
+            "x-api-key": f"{definet_lv2}"
         }
         getDetailedPairStats = {"query": 
             """{getDetailedPairStats(pairAddress: "%s", networkId: 1, durations: %s, bucketCount: 1) 
@@ -725,7 +725,7 @@ def send_tg_message(update, context):
             pass
 
         print(f"Finish loop at: {datetime.now().strftime('%d/%m/%Y %H:%M:00')}")
-        time.sleep(1500)   
+        time.sleep(3300)   
         sqlUpdatePostTelegramTokenInfo("post_telegram_token_info")  
         
         sqlUpdateTrendingTokens("trending_tokens")
